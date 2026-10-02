@@ -2,23 +2,29 @@ import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-load_dotenv()
+from langchain_community.document_loaders import PyPDFLoader
 
-api_key = os.getenv("GEMINI_API_KEY")
-
-if not api_key:
-    print("API key not found")
-    exit()
-
-model = ChatGoogleGenerativeAI(
-    model="gemini-3.8-flash",
-    google_api_key=api_key
-)
+pdf_path = "data/sample.pdf"
 
 try:
-    response = model.invoke("say hello to my RAG project in one sentence")
-    print(response.content)
+    loader = PyPDFLoader(pdf_path)
+    documents = loader.load()
+
+    if not documents:
+        print("PDF contains no pages.")
+    else:
+        total_characters = sum(
+            len(document.page_content.strip())
+            for document in documents
+        )
+
+        if total_characters == 0:
+            print("PDF contains no extractable text.")
+        else:
+            print("PDF loaded successfully")
+            print("Number of pages:", len(documents))
+            print("Total extracted characters:", total_characters)
 
 except Exception as e:
-    print("Error while communicating with Gemini:")
+    print("Error while loading PDF:")
     print(e)
