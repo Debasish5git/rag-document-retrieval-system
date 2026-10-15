@@ -69,6 +69,17 @@ def get_gemini_model():
         google_api_key = os.getenv("GEMINI_API_KEY")
     )
 
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+if st.button("🗑️ Clear Chat"):
+    st.session_state.message = []
+    st.rerun()
+
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
 st.title("📚 RAG-Based Document Retrieval System")
 st.write("Upload a PDF and ask questions about its content.")
 
@@ -103,20 +114,22 @@ if uploaded_file is not None:
 
     st.divider()
 
-    with st.form("question_form"):
-        question = st.text_input(
-            "Ask a question about your document"
-        )
-
-        submitted = st.form_submit_button("Ask Question")
+    
+    question = st.chat_input("Ask a question about your document")
+    submitted = question is not None
 
     if submitted:
 
         if not question.strip():
-
             st.warning("Please enter a question.")
 
         else:
+            with st.chat_message("user"):
+                st.markdown(question)
+
+            st.session_state.messages.append(
+                {"role":"user", "content":question}
+            )
         
             results = retriever.invoke(question)
 
@@ -188,5 +201,10 @@ if uploaded_file is not None:
 
             else:
                 answer = str(content)
-            st.subheader("Answer")
-            st.write(answer)
+
+            with st.chat_message("assistant"):
+                st.markdown(answer)
+
+            st.session_state.messages.append(
+                {"role":"assistant", "content":answer}
+            )
