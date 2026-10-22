@@ -133,6 +133,25 @@ if uploaded_file is not None:
         
             results = retriever.invoke(question)
 
+            sources = []
+
+            for document in results:
+                metadata = document.metadata
+
+                source = metadata.get("source", "Unknown file")
+                page = metadata.get("page_label")
+
+                if page is None:
+                    page = str(metadata.get("page", 0) + 1)
+
+                reference = {
+                    "source": os.path.basename(source),
+                    "page": page
+                }
+
+                if reference not in sources:
+                    sources.append(reference)
+
             context = "\n\n".join(
                 document.page_content
                 for document in results
@@ -188,22 +207,30 @@ if uploaded_file is not None:
             content = response.content
 
             if isinstance(content, list):
-
                 answer_parts = []
 
                 for item in content:
-
                     if(isinstance(item, dict) and item.get("type") == "text"):
-
                         answer_parts.append(item.get("text", ""))
 
                 answer = "".join(answer_parts)
-
             else:
                 answer = str(content)
 
+            not_found_message = ("I could not find the answer in the provided document.")
+
+            if not_found_message.lower() in answer.lower():
+                sources = []
+
             with st.chat_message("assistant"):
                 st.markdown(answer)
+
+                if sources:
+                    with st.expander("Source References"):
+                        for source in sources:
+                            st.markdown(f"- **{source['source']}** - Page {source['page']}")
+                else:
+                    st.caption("No source reference available.")
 
             st.session_state.messages.append(
                 {"role":"assistant", "content":answer}
